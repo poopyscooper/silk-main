@@ -56,24 +56,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Check if proxy server is available
     async function checkProxyAvailability() {
+        console.log('🔍 Checking proxy availability...');
+        console.log('🌐 UV_BASE:', UV_BASE);
+        
+        // First, try a simple ping to see if server is responding
+        try {
+            console.log('🏓 Pinging server...');
+            const pingResponse = await fetch(`${UV_BASE}/`, {
+                method: 'HEAD',
+                cache: 'no-cache'
+            });
+            console.log('🏓 Ping response status:', pingResponse.status);
+        } catch (pingError) {
+            console.log('🏓 Ping failed:', pingError.message);
+        }
+        
         try {
             // Try to fetch the UV config file to check if server is running
-            const response = await fetch(`${UV_BASE}/uv/uv.config.js`);
+            console.log('📡 Attempting to fetch:', `${UV_BASE}/uv/uv.config.js`);
+            
+            const response = await fetch(`${UV_BASE}/uv/uv.config.js`, {
+                method: 'GET',
+                cache: 'no-cache'
+            });
+            
+            console.log('📊 Response status:', response.status);
+            console.log('📊 Response ok:', response.ok);
+            
             if (response.ok) {
                 proxyAvailable = true;
                 updateStatus('connected', 'Proxy Connected');
+                console.log('✅ Proxy server is available!');
                 initUltraviolet();
             } else {
-                throw new Error('Server responded but config not found');
+                throw new Error(`Server responded with status: ${response.status}`);
             }
         } catch (error) {
             proxyAvailable = false;
+            console.error('❌ Proxy availability check failed:', error);
+            console.log('🔍 Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
             updateStatus('error', 'Proxy Not Available');
-            console.log('Ultraviolet proxy server not running. Some features will be limited.');
-            console.log('To enable full functionality:');
-            console.log('1. Make sure the server is running: npm start');
-            console.log('2. Check that port 8080 is available');
-            console.log('3. Verify all dependencies are installed');
+            console.log('📋 Ultraviolet proxy server not running. Some features will be limited.');
+            console.log('🔧 To enable full functionality:');
+            console.log('   1. Make sure the server is running: npm start');
+            console.log('   2. Check that port 8080 is available');
+            console.log('   3. Verify all dependencies are installed');
+            console.log('   4. Check browser console for network errors');
             
             // Add retry functionality
             setTimeout(() => {
