@@ -35,20 +35,6 @@ fastify.register(fastifyStatic, {
     decorateReply: true,
 });
 
-// Serve Ultraviolet static files
-fastify.register(fastifyStatic, {
-    root: publicPath,
-    prefix: '/uv/',
-    decorateReply: false,
-});
-
-// Serve Ultraviolet core files
-fastify.register(fastifyStatic, {
-    root: uvPath,
-    prefix: '/uv/',
-    decorateReply: false,
-});
-
 // Serve Epoxy transport files
 fastify.register(fastifyStatic, {
     root: epoxyPath,
@@ -61,6 +47,38 @@ fastify.register(fastifyStatic, {
     root: baremuxPath,
     prefix: '/baremux/',
     decorateReply: false,
+});
+
+// Custom route handler for Ultraviolet files to avoid conflicts
+fastify.get('/uv/*', async (request, reply) => {
+    const path = request.params['*'];
+    
+    // Try to serve from publicPath first (ultraviolet-static)
+    try {
+        const publicFilePath = join(publicPath, path);
+        const fs = await import('fs/promises');
+        const stats = await fs.stat(publicFilePath);
+        if (stats.isFile()) {
+            return reply.sendFile(path, publicPath);
+        }
+    } catch (error) {
+        // File not found in publicPath, continue to uvPath
+    }
+    
+    // Try to serve from uvPath (core ultraviolet)
+    try {
+        const uvFilePath = join(uvPath, path);
+        const fs = await import('fs/promises');
+        const stats = await fs.stat(uvFilePath);
+        if (stats.isFile()) {
+            return reply.sendFile(path, uvPath);
+        }
+    } catch (error) {
+        // File not found in uvPath
+    }
+    
+    // If file not found in either location, return 404
+    return reply.code(404).send({ error: 'File not found' });
 });
 
 // Special route for Ultraviolet config
