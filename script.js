@@ -57,21 +57,44 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if proxy server is available
     async function checkProxyAvailability() {
         try {
-            const response = await fetch(`${UV_BASE}/uv/uv.config.js`, { 
-                method: 'HEAD',
-                mode: 'no-cors'
-            });
-            proxyAvailable = true;
-            updateStatus('connected', 'Proxy Connected');
-            initUltraviolet();
+            // Try to fetch the UV config file to check if server is running
+            const response = await fetch(`${UV_BASE}/uv/uv.config.js`);
+            if (response.ok) {
+                proxyAvailable = true;
+                updateStatus('connected', 'Proxy Connected');
+                initUltraviolet();
+            } else {
+                throw new Error('Server responded but config not found');
+            }
         } catch (error) {
             proxyAvailable = false;
             updateStatus('error', 'Proxy Not Available');
             console.log('Ultraviolet proxy server not running. Some features will be limited.');
-            console.log('To enable full functionality, start the proxy server:');
-            console.log('1. Install Node.js and pnpm (see SETUP.md)');
-            console.log('2. Run: cd Ultraviolet-App && pnpm install && pnpm start');
+            console.log('To enable full functionality:');
+            console.log('1. Make sure the server is running: npm start');
+            console.log('2. Check that port 8080 is available');
+            console.log('3. Verify all dependencies are installed');
+            
+            // Add retry functionality
+            setTimeout(() => {
+                if (!proxyAvailable) {
+                    updateStatus('retry', 'Click to Retry');
+                    statusIndicator.style.cursor = 'pointer';
+                    statusIndicator.onclick = retryProxyConnection;
+                }
+            }, 2000);
         }
+    }
+
+    // Retry proxy connection
+    async function retryProxyConnection() {
+        updateStatus('loading', 'Retrying...');
+        statusIndicator.style.cursor = 'default';
+        statusIndicator.onclick = null;
+        
+        setTimeout(() => {
+            checkProxyAvailability();
+        }, 1000);
     }
 
     // Initialize Ultraviolet
